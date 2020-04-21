@@ -23,7 +23,7 @@ end_node = &m_Model.FindClosestNode(end_x, end_y);
 // - Node objects have a distance method to determine the distance to another node.
 
 float RoutePlanner::CalculateHValue(RouteModel::Node const *node) {
-    return end_node->distance(*node);
+    end_node->distance(*node);
 
 }
 
@@ -35,19 +35,16 @@ float RoutePlanner::CalculateHValue(RouteModel::Node const *node) {
 // - Use CalculateHValue below to implement the h-Value calculation.
 // - For each node in current_node.neighbors, add the neighbor to open_list and set the node's visited attribute to true.
 
-void RoutePlanner::AddNeighbors(RouteModel::Node *current_node) {
+void RoutePlanner::AddNeighbors(RouteModel::Node *current_node){
     current_node->FindNeighbors();
-    for(auto node : current_node->neighbors){
-        if(node->visited == false){
-        node->parent = current_node;
-        node->h_value = CalculateHValue(node);
-        node->g_value = node->distance(*current_node) + current_node->g_value;
-        open_list.push_back(node);
-        node->visited = true;
-        }
+    for (auto neighbor:current_node->neighbors){
+        neighbor->parent = current_node;
+        neighbor->h_value = CalculateHValue(neighbor);
+        neighbor->g_value = current_node->distance(*neighbor) + current_node->g_value;
+        open_list.push_back(neighbor);
+        neighbor->visited = true;
     }
 }
-
 
 // TODO 5: Complete the NextNode method to sort the open list and return the next node.
 // Tips:
@@ -56,30 +53,16 @@ void RoutePlanner::AddNeighbors(RouteModel::Node *current_node) {
 // - Remove that node from the open_list.
 // - Return the pointer.
 
-bool Comparision(RouteModel::Node *a, RouteModel::Node *b){
-   float f1 = a->h_value + a->g_value;
-   float f2 = b->h_value + b->g_value;
-   return f1>f2;
-}
-
-
 RouteModel::Node *RoutePlanner::NextNode() {
-    std::sort(open_list.begin(), open_list.end(), Comparision);
-    //std::sort(open_list.begin(), open_list.end(), Comparison);
-    auto node = open_list.back();
-    open_list.pop_back();
-    return node;
+
+   std::sort(open_list.begin(), open_list.end(), [](RouteModel::Node *a, RouteModel::Node *b){return (a->g_value + a->h_value) < (b->g_value + b->g_value);});
+   auto node = open_list.back();
+   open_list.pop_back();
+   return node;
+
 }
 
-
-// TODO 6: Complete the ConstructFinalPath method to return the final path found from your A* search.
-// Tips:
-// - This method should take the current (final) node as an argument and iteratively follow the 
-//   chain of parents of nodes until the starting node is found.
-// - For each node in the chain, add the distance from the node to its parent to the distance variable.
-// - The returned vector should be in the correct order: the start node should be the first element
-//   of the vector, the end node should be the last element.
-
+/*
 std::vector<RouteModel::Node> RoutePlanner::ConstructFinalPath(RouteModel::Node *current_node) {
     // Create path_found vector
     distance = 0.0f;
@@ -98,6 +81,30 @@ std::vector<RouteModel::Node> RoutePlanner::ConstructFinalPath(RouteModel::Node 
     distance *= m_Model.MetricScale(); // Multiply the distance by the scale of the map to get meters.
     return path_found;
 
+}
+*/
+// TODO 6: Complete the ConstructFinalPath method to return the final path found from your A* search.
+// Tips:
+// - This method should take the current (final) node as an argument and iteratively follow the 
+//   chain of parents of nodes until the starting node is found.
+// - For each node in the chain, add the distance from the node to its parent to the distance variable.
+// - The returned vector should be in the correct order: the start node should be the first element
+//   of the vector, the end node should be the last element.
+
+std::vector<RouteModel::Node> RoutePlanner::ConstructFinalPath(RouteModel::Node *current_node) {
+    distance = 0.0f;
+    std::vector<RouteModel::Node> parent_path;
+    RouteModel::Node parent;
+    while(current_node != nullptr){
+        parent_path.push_back(*current_node);
+        parent = *(current_node->parent);
+        distance += current_node->distance(parent);
+        current_node = current_node->parent;
+            }
+    parent_path.push_back(*current_node);
+
+    distance *= m_Model.MetricScale(); // Multiply the distance by the scale of the map to get meters.
+    return parent_path;
 }
 
 
